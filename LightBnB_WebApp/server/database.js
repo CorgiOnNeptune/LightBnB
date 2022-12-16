@@ -32,11 +32,11 @@ const getUserWithEmail = email => {
 
   return pool
     .query(queryString, [email])
-    .then((result) => {
-      if (!result.rows[0]) {
+    .then((res) => {
+      if (!res.rows[0]) {
         throw new Error('Invalid email address');
       }
-      return result.rows[0];
+      return res.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
@@ -62,11 +62,11 @@ const getUserWithId = id => {
 
   return pool
     .query(queryString, [id])
-    .then((result) => {
-      if (!result.rows[0]) {
+    .then((res) => {
+      if (!res.rows[0]) {
         throw new Error('Invalid user id');
       }
-      return result.rows[0];
+      return res.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
@@ -91,8 +91,8 @@ const addUser = user => {
 
   return pool
     .query(queryString, values)
-    .then((result) => {
-      return result.rows[0];
+    .then((res) => {
+      return res.rows[0];
     })
     .catch((err) => {
       console.log(err.message);
@@ -129,8 +129,8 @@ const getAllReservations = (guest_id, limit = 10) => {
 
   return pool
     .query(queryString, values)
-    .then((result) => {
-      return result.rows;
+    .then((res) => {
+      return res.rows;
     })
     .catch((err) => {
       console.log(err.message);
@@ -147,11 +147,50 @@ exports.getAllReservations = getAllReservations;
  * @param {*} limit The number of results to return.
  * @return {Promise<[{}]>}  A promise to the properties.
  */
+// const getAllProperties = (options, limit = 10) => {
+
+//   return pool
+//     .query(`SELECT * FROM properties LIMIT $1`, [limit])
+//     .then((result) => {
+//       return result.rows;
+//     })
+//     .catch((err) => {
+//       console.log(err.message);
+//     });
+// };
+
 const getAllProperties = (options, limit = 10) => {
+  const queryParams = [];
+
+  let queryString = `
+  SELECT properties.*, avg(property_reviews.rating) AS average_rating
+  FROM properties
+    JOIN property_reviews ON properties.id = property_id
+  `;
+  // GROUP BY properties.id
+  // HAVING AVG(property_reviews.rating) >= 4
+  // ORDER BY cost_per_night
+  // LIMIT $2;
+
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `WHERE city LIKE $${queryParams.length} `;
+  }
+
+  queryParams.push(limit);
+  queryString += `
+  GROUP BY properties.id
+  ORDER BY cost_per_night
+  LIMIT $${queryParams.length};
+  `;
+
+  console.log(queryString, queryParams);
+
+
   return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => {
-      return result.rows;
+    .query(queryString, queryParams)
+    .then((res) => {
+      return res.rows;
     })
     .catch((err) => {
       console.log(err.message);
